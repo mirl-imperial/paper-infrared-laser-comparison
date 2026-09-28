@@ -3,9 +3,8 @@
 William J. C. Francis, Lucy R. Noyes, Milena Micic, Tugba Temel, Ronan A. Battle,
 Daniel Simon, Zoltan Takats, Robert T. Murray
 
-This repository contains the custom code behind specific numbers and tables in the manuscript
-(submitted to *Rapid Communications in Mass Spectrometry*). The data is in Zenodo at
-https://doi.org/10.5281/zenodo.23025495.
+This repository contains the custom code behind specific numbers and tables in the manuscript.
+The data is in Zenodo at https://doi.org/10.5281/zenodo.23025495.
 
 **Scope.** The repository holds only the calculations whose results cannot be read directly
 from the deposited data: the consensus ion list, the signal per crater volume, the crater area
@@ -253,4 +252,4 @@ MIT (see `LICENSE`).
 
 ## Citation
 
-Please cite the associated article (see `CITATION.cff`). Software DOI: https://doi.org/[TK software DOI].
+Please cite the associated article (see `CITATION.cff`).
