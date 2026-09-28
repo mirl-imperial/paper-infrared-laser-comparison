@@ -1,0 +1,37 @@
+cff-version: 1.2.0
+message: "If you use this code, please cite the associated article (preferred-citation below)."
+type: software
+title: "Code for: Multimodal characterisation of three infrared lasers for ambient mass spectrometry imaging"
+version: 1.0.0
+license: MIT
+repository-code: "https://github.com/mirl-imperial/paper-infrared-laser-comparison"
+# doi: [TK software DOI]
+authors:
+  - family-names: Francis
+    given-names: William J. C.
+  - family-names: Micic
+    given-names: Milena
+  - family-names: Murray
+    given-names: Robert T.
+preferred-citation:
+  type: article
+  title: "Multimodal characterisation of three infrared lasers for ambient mass spectrometry imaging"
+  year: 2026
+  # doi:           # article DOI, add on publication
+  authors:
+    - family-names: Francis
+      given-names: William J. C.
+    - family-names: Noyes
+      given-names: Lucy R.
+    - family-names: Micic
+      given-names: Milena
+    - family-names: Temel
+      given-names: Tugba
+    - family-names: Battle
+      given-names: Ronan A.
+    - family-names: Simon
+      given-names: Daniel
+    - family-names: Takats
+      given-names: Zoltan
+    - family-names: Murray
+      given-names: Robert T.
