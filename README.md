@@ -5,7 +5,7 @@ Daniel Simon, Zoltan Takats, Robert T. Murray
 
 This repository contains the custom code behind specific numbers and tables in the manuscript
 (submitted to *Rapid Communications in Mass Spectrometry*). The data is in Zenodo at
-https://doi.org/[TK data DOI].
+https://doi.org/10.5281/zenodo.23025495.
 
 **Scope.** The repository holds only the calculations whose results cannot be read directly
 from the deposited data: the consensus ion list, the signal per crater volume, the crater area
@@ -35,7 +35,7 @@ Figure numbers below refer to the submitted manuscript.
 
 ## Getting the data
 
-Download the Zenodo record (https://doi.org/[TK data DOI]) and unzip each section into one
+Download the Zenodo record (https://doi.org/10.5281/zenodo.23025495) and unzip each section into one
 folder, e.g. `laser_comp_data/`, giving `laser_comp_data/01_MSI_HDI_processed_data/`,
 `laser_comp_data/02_MSI_IMZML_data/`, `laser_comp_data/03_brain_homogenate_MS/`,
 `laser_comp_data/05_crater_micrographs/`, `laser_comp_data/06_consensus_ion_list/`, and so
