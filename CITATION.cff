@@ -2,7 +2,7 @@ cff-version: 1.2.0
 message: "If you use this code, please cite the associated article (preferred-citation below)."
 type: software
 title: "Code for: Multimodal characterisation of three infrared lasers for ambient mass spectrometry imaging"
-version: 1.0.0
+version: 1.0.1
 license: MIT
 repository-code: "https://github.com/mirl-imperial/paper-infrared-laser-comparison"
 authors:
