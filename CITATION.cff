@@ -5,6 +5,7 @@ title: "Code for: Multimodal characterisation of three infrared lasers for ambie
 version: 1.0.1
 license: MIT
 repository-code: "https://github.com/mirl-imperial/paper-infrared-laser-comparison"
+doi: 10.5281/zenodo.23029705
 authors:
   - family-names: Francis
     given-names: William J. C.
