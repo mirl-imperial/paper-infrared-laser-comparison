@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Signal per crater volume for the three mouse brain images (Results, Mouse brain imaging).
+"""Signal per crater volume for the three mouse brain images (Table 1; Results, Mouse brain imaging).
 
 Reproduces the numbers in the "Mouse brain imaging" subsection of Results
 (and the abstract): the mean signal per pixel of each image, the crater
@@ -10,11 +10,15 @@ scatter of that value between lasers.
 
 Method
 ------
-1. Common ion set. The ions present in all three images (their 150-peak m/z
-   axes, matched within 10 ppm) and also on the consensus ion list (within
-   10 ppm). Each m/z of the first image's axis is tested in turn; ppm is
-   relative to that m/z. One set shared by all three lasers keeps the sum
-   from rewarding whichever laser detects more ions.
+1. Common ion set. The consensus ions (Table S1) found in all three images.
+   Each consensus m/z is tested in turn and kept if every image's 150-peak
+   m/z axis has a peak within 10 ppm of it (ppm relative to the consensus
+   m/z). This is the same definition as the intact-tissue columns of
+   Table S1. Anchoring on the consensus m/z, rather than on one image's
+   axis, keeps ions whose image m/z values sit on either side of the
+   consensus value. One set
+   shared by all three lasers keeps the sum from rewarding whichever laser
+   detects more ions.
 2. Mean signal per pixel. For each image, the intensities of the common ions
    (the nearest m/z on that image's axis) are summed over every pixel of the
    image and divided by the number of pixels. The whole image is used, with
@@ -49,7 +53,7 @@ from imzml_to_intensity_cube import imzml_to_intensity_cube
 
 PPM = 10.0
 DEPTH_UM = 2.0
-CONSENSUS_CSV = Path("06_consensus_ion_list") / "master_ion_list_laser_comp.csv"
+CONSENSUS_CSV = Path("05_consensus_ion_list") / "master_ion_list_laser_comp.csv"
 IMZML_DIR = Path("02_MSI_IMZML_data")
 
 
@@ -69,11 +73,9 @@ def within_ppm(target: float, pool: np.ndarray, ppm: float = PPM) -> bool:
 
 def common_ion_set(mz_axes: list[np.ndarray], reference_mz: np.ndarray,
                    ppm: float = PPM) -> np.ndarray:
-    """m/z values of the first axis found in every other axis and on the reference list."""
-    first, *rest = mz_axes
-    return np.sort(np.array([m for m in first
-                             if all(within_ppm(m, axis, ppm) for axis in rest)
-                             and within_ppm(m, reference_mz, ppm)]))
+    """Reference (consensus) m/z values with a peak within ``ppm`` on every axis."""
+    return np.sort(np.array([m for m in np.asarray(reference_mz, dtype=float)
+                             if all(within_ppm(m, axis, ppm) for axis in mz_axes)]))
 
 
 def mean_signal_per_pixel(intensities: np.ndarray, mz: np.ndarray,
@@ -119,7 +121,7 @@ def sample_cv_percent(values: np.ndarray) -> float:
 # =================================================================== demo ===
 
 def _sig3(x: float) -> str:
-    """Three significant figures in the manuscript's style (7.08e3, 1.24e4)."""
+    """Three significant figures in the manuscript's style (7.35e3, 1.33e4)."""
     mantissa, exponent = f"{x:.2e}".split("e")
     return f"{mantissa}e{int(exponent)}"
 

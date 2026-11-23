@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
-"""Brain crater area statistics per laser (Fig. 3; Supplementary Fig. S2).
+"""Brain crater area statistics per laser (Table 1; Fig. 2d-f; Supplementary Fig. S6).
 
 Summarises the SEM crater areas measured on the imaged mouse brain sections
 from the per-crater ImageJ measurement CSVs in the data record:
 
-    05_crater_micrographs/brain_SEM_measurements/<laser stem>_brain.csv
+    04_crater_micrographs/brain_SEM_measurements/<laser stem>_brain.csv
 
 Each CSV has one row per crater and an "Area" column in µm², from an ellipse
 fitted to each crater outline in ImageJ (the fitting was done in ImageJ, not
@@ -32,7 +32,7 @@ LASERS = {
     "2.72 µm · 2 ns":   "2.72um_2ns_Ivy",
     "2.94 µm · 300 ps": "2.94um_300ps_Innolas",
 }
-MEASUREMENTS = Path("05_crater_micrographs") / "brain_SEM_measurements"
+MEASUREMENTS = Path("04_crater_micrographs") / "brain_SEM_measurements"
 
 
 def read_crater_areas(csv_path: Path) -> np.ndarray:

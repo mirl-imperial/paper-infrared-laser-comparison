@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Consensus ion list for brain homogenate (Supplementary Table S1; Fig. 4).
+"""Consensus ion list for brain homogenate (Supplementary Table S1; Fig. 3).
 
 Builds the consensus ion list from the six homogenate replicates per laser and
 the six neat-IPA background acquisitions, then overlays the single 150-peak
@@ -27,9 +27,11 @@ Method
    intensity is the mean Avg Intensity over the replicates above the floor.
 5. A cluster is kept if at least one laser detects it and its consensus m/z
    is not within 10 ppm of a solvent-background ion.
-6. Intact-tissue overlay. Peaks of each intact 150-peak list that are above
-   the noise floor and not solvent background are matched to the nearest
-   consensus m/z within 10 ppm. Unmatched intact peaks are counted only.
+6. Intact-tissue overlay. Every peak of each intact 150-peak list that is not
+   solvent background is matched to the nearest consensus m/z within 10 ppm.
+   The noise floor is not applied here: it was measured for the 500-peak
+   homogenate replicates, and the intact images are 150-peak exports.
+   Unmatched intact peaks are counted only.
 
 The calculation functions take NumPy arrays (or a DataFrame of the result) and
 return values. File reading is confined to ``read_peak_list`` and
@@ -187,7 +189,8 @@ def ipa_background_ions(backgrounds: list[tuple[np.ndarray, np.ndarray]],
 
 
 def consensus_ion_list(replicates: dict[str, list[tuple[np.ndarray, np.ndarray]]],
-                       noise_floor: float, exclusion_mz: np.ndarray) -> pd.DataFrame:
+                       noise_floor: float, exclusion_mz: np.ndarray,
+                       ppm_tolerance: float = PPM_TOLERANCE) -> pd.DataFrame:
     """Steps 3-5: the consensus list from the homogenate replicates.
 
     Parameters
@@ -195,6 +198,8 @@ def consensus_ion_list(replicates: dict[str, list[tuple[np.ndarray, np.ndarray]]
     replicates : {laser label: [(mz, avg_intensity), ...]}, six replicates each
     noise_floor : global noise floor
     exclusion_mz : solvent-background m/z values
+    ppm_tolerance : clustering tolerance of the homogenate peaks (10 ppm in
+        the manuscript). The solvent-background match stays at 10 ppm.
 
     Returns
     -------
@@ -204,7 +209,7 @@ def consensus_ion_list(replicates: dict[str, list[tuple[np.ndarray, np.ndarray]]
     """
     pooled = pd.concat([_pool(reps, label) for label, reps in replicates.items()],
                        ignore_index=True)
-    pooled["cluster"] = cluster_mz(pooled["mz"].to_numpy())
+    pooled["cluster"] = cluster_mz(pooled["mz"].to_numpy(), ppm_tolerance)
     consensus = pooled.groupby("cluster")["mz"].mean()
 
     rows = []
@@ -232,21 +237,63 @@ def consensus_ion_list(replicates: dict[str, list[tuple[np.ndarray, np.ndarray]]
     return pd.DataFrame(rows, columns=columns).sort_values("m/z").reset_index(drop=True)
 
 
+def tolerance_check(replicates: dict[str, list[tuple[np.ndarray, np.ndarray]]],
+                    noise_floor: float, exclusion_mz: np.ndarray,
+                    ppm_tolerance: float) -> dict:
+    """Consensus list statistics at one clustering tolerance (Supplementary Fig. S2).
+
+    Rebuilds the consensus list with the homogenate peaks clustered at
+    ``ppm_tolerance`` (noise floor, detection rule and the 10 ppm
+    solvent-background list unchanged) and returns a dict with
+    ``n_consensus_ions``; ``n_detected``, {laser label: ions detected};
+    ``n_merged``, the kept ions whose cluster holds two or more peaks of one
+    acquisition (distinct ions of one spectrum joined into one);
+    ``max_cluster_width_ppm`` over the kept ions; and, over every above-floor
+    peak of a kept ion, its deviation from that ion's consensus m/z as
+    ``deviation_sd_ppm`` (ddof = 1) and ``deviation_p95_ppm``, the 95th
+    percentile of the absolute deviation.
+    """
+    master = consensus_ion_list(replicates, noise_floor, exclusion_mz, ppm_tolerance)
+    pooled = pd.concat([_pool(reps, label) for label, reps in replicates.items()],
+                       ignore_index=True)
+    pooled["cluster"] = cluster_mz(pooled["mz"].to_numpy(), ppm_tolerance)
+    grouped = pooled.groupby("cluster")
+    consensus = grouped["mz"].mean()
+    kept_ids = (pd.Series(consensus.index, index=consensus.to_numpy())
+                .loc[master["m/z"].to_numpy()].to_numpy())
+    kept = pooled[pooled["cluster"].isin(kept_ids)]
+    per_acquisition = (kept.groupby(["cluster", "group", "replicate"]).size()
+                       .groupby("cluster").max())
+    width = grouped["mz"].agg(lambda m: (m.max() - m.min()) / m.mean() * 1e6).loc[kept_ids]
+    above = kept[kept["avg_intensity"] >= noise_floor]
+    centre = above["cluster"].map(consensus)
+    dev = ((above["mz"] - centre) / centre * 1e6).to_numpy()
+    return dict(ppm_tolerance=float(ppm_tolerance),
+                n_consensus_ions=int(len(master)),
+                n_detected={label: int(master[f"{label} (Homogenate)"].notna().sum())
+                            for label in replicates},
+                n_merged=int((per_acquisition >= 2).sum()),
+                max_cluster_width_ppm=float(width.max()),
+                deviation_sd_ppm=float(dev.std(ddof=1)),
+                deviation_p95_ppm=float(np.quantile(np.abs(dev), 0.95)))
+
+
 def add_intact_overlay(master: pd.DataFrame,
                        intact: dict[str, tuple[np.ndarray, np.ndarray]],
-                       noise_floor: float, exclusion_mz: np.ndarray
+                       exclusion_mz: np.ndarray
                        ) -> tuple[pd.DataFrame, dict]:
     """Step 6: add an "<label> (Intact)" column per laser from its 150-peak list.
 
-    Returns the extended table and, per laser, the number of intact peaks above
-    the floor (solvent background removed), matched to the list, and unmatched.
+    No noise floor is applied (it belongs to the homogenate replicates only).
+    Returns the extended table and, per laser, the number of intact peaks kept
+    (solvent background removed), matched to the list, and unmatched.
     """
     master = master.copy()
     ref = master["m/z"].to_numpy()
     stats = {}
     for label, (mz, inten) in intact.items():
         keep = [(m, a) for m, a in zip(mz, inten)
-                if a >= noise_floor and not is_background_ion(m, exclusion_mz)]
+                if not is_background_ion(m, exclusion_mz)]
         col = np.full(len(master), np.nan)
         n_matched = 0
         for m, a in keep:
@@ -257,13 +304,13 @@ def add_intact_overlay(master: pd.DataFrame,
                     col[idx] = a
                 n_matched += 1
         master[f"{label} (Intact)"] = col
-        stats[label] = dict(n_above_floor=len(keep), n_matched=n_matched,
+        stats[label] = dict(n_kept=len(keep), n_matched=n_matched,
                             n_unmatched=len(keep) - n_matched)
     return master, stats
 
 
 def detection_overlap(master: pd.DataFrame, labels: list[str]) -> dict:
-    """Ion counts for each region of the three-laser overlap (Fig. 4).
+    """Ion counts for each region of the three-laser overlap (Fig. 3).
 
     Keys are tuples of the labels detecting the ions in that region only,
     e.g. (label_a,) is "detected by label_a alone".
@@ -293,13 +340,16 @@ def main() -> int:
     p.add_argument("data_dir", type=Path, help="unzipped data record, e.g. laser_comp_data")
     p.add_argument("--out-dir", type=Path, default=Path("."),
                    help="folder for the two output CSVs (default: working directory)")
+    p.add_argument("--ppm-tolerance", type=float, default=None,
+                   help="also report the consensus list statistics at this clustering "
+                        "tolerance (Supplementary Fig. S2); the written list stays at 10 ppm")
     args = p.parse_args()
 
     replicates, backgrounds, intact = read_consensus_inputs(args.data_dir)
     floor = global_noise_floor([a for _, a in backgrounds])
     exclusion = ipa_background_ions(backgrounds, floor)
     master = consensus_ion_list(replicates, floor, exclusion)
-    master, intact_stats = add_intact_overlay(master, intact, floor, exclusion)
+    master, intact_stats = add_intact_overlay(master, intact, exclusion)
 
     args.out_dir.mkdir(parents=True, exist_ok=True)
     master.to_csv(args.out_dir / "master_ion_list_laser_comp.csv", index=False)
@@ -317,8 +367,15 @@ def main() -> int:
         print(f"  {' + '.join(members):<52} {n}")
     print("Intact-tissue overlay (one 150-peak list per laser):")
     for label, s in intact_stats.items():
-        print(f"  {label:<18} {s['n_above_floor']} peaks above floor, "
+        print(f"  {label:<18} {s['n_kept']} peaks kept (no noise floor), "
               f"{s['n_matched']} matched, {s['n_unmatched']} unmatched")
+    if args.ppm_tolerance is not None:
+        s = tolerance_check(replicates, floor, exclusion, args.ppm_tolerance)
+        print(f"\nClustering at {s['ppm_tolerance']:g} ppm: {s['n_consensus_ions']} consensus ions "
+              f"({' / '.join(str(n) for n in s['n_detected'].values())} per laser), "
+              f"{s['n_merged']} merged, widest kept cluster {s['max_cluster_width_ppm']:.1f} ppm")
+        print(f"  Deviation of above-floor peaks from their consensus m/z: "
+              f"s.d. {s['deviation_sd_ppm']:.1f} ppm, 95% within ±{s['deviation_p95_ppm']:.1f} ppm")
     print(f"\nWrote {args.out_dir / 'master_ion_list_laser_comp.csv'}")
     print(f"Wrote {args.out_dir / 'ipa_background_ions.csv'}")
     return 0

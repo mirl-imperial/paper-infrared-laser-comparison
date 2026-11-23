@@ -16,7 +16,7 @@ env/
 # Demo outputs written to the working directory
 master_ion_list_laser_comp.csv
 ipa_background_ions.csv
-homogenate_histogram.csv
+relative_ion_intensity.csv
 *.npz
 
 # Data (download from Zenodo; do not commit)

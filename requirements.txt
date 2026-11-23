@@ -3,3 +3,4 @@ scipy>=1.11
 pandas>=2.0
 matchms>=0.24
 pyimzML>=1.5.5
+igor2>=0.5

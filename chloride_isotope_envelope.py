@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Chloride-adduct isotope envelope of m/z 862.65 (Supplementary Note S1, Fig. S7).
+"""Chloride-adduct isotope envelope of m/z 862.65 (Supplementary Note S1, Fig. S5).
 
 Tests the assignment of m/z 862.65 (the green channel of Fig. 2) as
 [HexCer 42:1;O3 + 35Cl]- by comparing its measured precursor isotope envelope
